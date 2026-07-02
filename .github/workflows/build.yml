@@ -1,0 +1,32 @@
+name: Cordova APK Derleme
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kodu Klonla
+        run: git clone https://github.com/toreg3587-crypto/kutu-kapat.git .
+
+      - name: Java ve Android SDK Kurulumu
+        run: sudo apt-get update && sudo apt-get install -y openjdk-17-jdk android-sdk
+
+      - name: Node.js Kurulumu
+        run: |
+          curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+          sudo apt-get install -y nodejs
+
+      - name: Cordova Derlemesi
+        run: |
+          export ANDROID_HOME=/usr/lib/android-sdk
+          npm install -g cordova
+          cordova platform add android
+          cordova build android --release
+
+      - name: APK'yı Yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: kutu-kapat-apk
+          path: platforms/android/app/build/outputs/apk/release/app-release.apk
