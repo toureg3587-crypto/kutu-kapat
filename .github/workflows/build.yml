@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Depoyu Kontrol Et
@@ -16,12 +16,12 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Node.js Kurulumu
+      - name: Node.js 20 Kurulumu
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Android SDK Kurulumu
+      - name: Android SDK Kurulumu (Manuel)
         run: |
           sudo apt-get update
           sudo apt-get install -y android-sdk
