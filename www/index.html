@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kutu Kapat</title>
+    <style>
+        :root { --felt-red: #8e1414; --wood-dark: #2d150b; --wood-light: #bc8f65; --wood-frame: #462211; }
+        * { box-sizing: border-box; }
+        .bg-image { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: url('arkaplan.png'); background-size: 104% 109%; background-position: center; background-repeat: no-repeat; z-index: 1; }
+        body { font-family: 'Georgia', 'Times New Roman', serif; background-color: #1a0d07; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; width: 100vw; overflow: hidden; user-select: none; }
+        .audio-ctrl-btn, .info-btn { position: fixed; top: 70px; background: transparent; border: none; font-size: 1.5rem; cursor: pointer; width: 70px; height: 70px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 9999; transition: all 0.3s ease; padding: 0; }
+        .audio-ctrl-btn img, .info-btn img { width: 100%; height: 100%; object-fit: contain; display: block; border-radius: 50%; }
+        .audio-ctrl-btn { right: 50px; }
+        .info-btn { left: 55px; }
+        .lang-btn { position: fixed; top: 20px; left: 85px; width: 120px; height: 54px; background: transparent; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 9999; padding: 0; overflow: hidden; cursor: default; transition: all 0.3s ease; }
+        .lang-btn .lang-bg-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .lang-zone { position: absolute; top: 0; height: 100%; width: 50%; cursor: pointer; background: transparent; z-index: 2; }
+        .zone-tr { left: 0; }
+        .zone-en { right: 0; }
+        .lang-zone:hover { background: rgba(255, 255, 255, 0.15); }
+        .game-box { width: 95%; max-width: 700px; min-height: 600px; margin: 20px auto; background-image: url('kutu_cercevesi.png'); background-size: 100% 100%; background-position: center; background-repeat: no-repeat; background-color: transparent; padding: 120px 40px 40px 40px; display: flex; flex-direction: column; position: relative; z-index: 2; box-sizing: border-box; border-bottom: 25px solid transparent; box-shadow: 0px 20px 30px 10px rgba(0, 0, 0, 0.8); clip-path: inset(0 round 5px); filter: drop-shadow(0px 20px 30px 10px rgba(0, 0, 0, 0.8)); }
+        .board-top { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); width: 82%; display: flex; justify-content: center; gap: 6px; background: transparent; padding: 0; z-index: 10; }
+        .jackpot-bar { font-family: 'Impact', sans-serif; font-size: 6rem; font-weight: 900; text-transform: uppercase; letter-spacing: 5px; line-height: 1; color: #ffde00; background: linear-gradient(to bottom, #ffea00, #b8860b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 0px #d2691e, 4px 4px 0px #a0522d, 6px 6px 0px #8b4513, 8px 8px 0px #5d2e0a, 10px 10px 10px rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; padding: 50px 0; width: 100%; }
+        .modal { display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; background: rgba(129, 185, 134, 0.959); z-index: 10000; justify-content: center; align-items: center; }
+        .modal-content { background: #b3221d; color: #d7ccc8; padding: 30px; width: 90%; max-width: 600px; max-height: 85vh; overflow-y: auto; border: 3px solid #aa4931; border-radius: 10px; position: relative; box-shadow: 0 0 40px rgba(0,0,0,0.9); }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 2rem; cursor: pointer; color: #53361b; transition: color 0.2s; }
+        .close-btn:hover { color: #fff; }
+        .modal-close-btn { display: block; width: 100%; margin-top: 25px; padding: 12px; background: #862525; color: #2d150b; font-weight: bold; font-size: 1.1rem; border: 2px solid #d7ccc8; border-radius: 8px; cursor: pointer; text-align: center; transition: background 0.2s, transform 0.1s; }
+        .modal-close-btn:hover { background: #d7ccc8; }
+        .modal-close-btn:active { transform: scale(0.95); }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+        .animate-jackpot { animation: blink 0.8s infinite; color: #ffde00 !important; text-shadow: 0 0 15px #ffde00, 0 0 25px #b8860b !important; }
+        .tile-container { width: 55px; height: 140px; position: relative; display: flex; justify-content: center; align-items: center; }
+        .letter-overlay { font-size: 2.2rem; font-weight: bold; color: #d7ccc8; opacity: 0.3; font-family: 'Georgia', serif; margin-bottom: 10px; pointer-events: none; }
+        .tile { position: absolute; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; cursor: pointer; clip-path: polygon(10% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 10% 100%, 0% 90%, 0% 10%); box-shadow: inset 0 0 10px rgba(0,0,0,0.5); transition: transform 0.3s ease, filter 0.2s ease; color: transparent; background-size: 100% 100%; background-position: center; background-repeat: no-repeat; }
+        .tile:hover:not(.shut):not(.disabled) { background-image: linear-gradient(rgba(255, 241, 118, 0.4), rgba(245, 127, 23, 0.4)), var(--tile-image); background-color: transparent; background-blend-mode: normal; filter: none; cursor: pointer; }
+        .tile.selected { background-image: linear-gradient(rgba(255, 241, 118, 0.5), rgba(245, 127, 23, 0.5)), var(--tile-image); background-size: 100% 100%; background-position: center; background-repeat: no-repeat; color: transparent; outline: 3px solid #eceae5; outline-offset: -3px; z-index: 2; }
+        .tile.shut { transform: rotateX(-90deg); box-shadow: none; cursor: not-allowed; z-index: 1; }
+        .felt-area { position: relative; width: 100%; min-height: 200px; margin-top: 90px; padding: 20px 40px; background-color: transparent; border-top: none; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+        .face-1 { background-image: url('1.png'); }
+        .face-2 { background-image: url('2.png'); }
+        .face-3 { background-image: url('3.png'); }
+        .face-4 { background-image: url('4.png'); }
+        .face-5 { background-image: url('5.png'); }
+        .face-6 { background-image: url('6.png'); }
+        .status-panel { flex: 1; min-width: 200px; max-width: 60%; color: #fff; font-size: 0.9rem; overflow-y: auto; max-height: 100px; padding-right: 10px; text-align: left; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
+        .status-panel::-webkit-scrollbar { width: 6px; height: 6px; }
+        .status-panel::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 3px; }
+        .status-panel::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.5); border-radius: 3px; }
+        .dice-container { display: flex; gap: 10px; flex-shrink: 0; margin-left: auto; }
+        .cube { width: 55px; height: 55px; position: relative; transform-style: preserve-3d; transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1); flex-shrink: 0; will-change: transform; }
+        .face { position: absolute; width: 55px; height: 55px; background-color: transparent; border: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; background-size: cover; background-position: center; background-repeat: no-repeat; flex-shrink: 0; backface-visibility: hidden; }
+        .face-1 { transform: translateZ(27.5px) scale(1.01); }
+        .face-2 { transform: rotateY(180deg) translateZ(27.5px) scale(1.01); }
+        .face-3 { transform: rotateY(90deg) translateZ(27.5px) scale(1.01); }
+        .face-4 { transform: rotateY(-90deg) translateZ(27.5px) scale(1.01); }
+        .face-5 { transform: rotateX(90deg) translateZ(27.5px) scale(1.01); }
+        .face-6 { transform: rotateX(-90deg) translateZ(27.5px) scale(1.01); }
+        .controls { position: absolute; bottom: 0px; left: 0; width: 100%; display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 10px; box-sizing: border-box; }
+        .btn { background: transparent !important; border: none !important; padding: 0 !important; box-shadow: none !important; display: inline-flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.3s ease; width: auto; height: auto; border-radius: 0 !important; }
+        .btn img { width: 100%; height: 100%; object-fit: contain; display: block; transition: transform 0.2s ease; mix-blend-mode: normal; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3)); }
+        .btn:hover:not(:disabled) img { transform: scale(1.05); filter: brightness(1.1) drop-shadow(0 4px 8px rgba(0,0,0,0.3)); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn:disabled img { transform: none !important; filter: grayscale(1); }
+        .btn:active:not(:disabled) img { transform: scale(0.95); }
+        #rollBtn { width: 160px; height: 77px; }
+        #finishTurnBtn { width: 160px; height: 80px; display: none; }
+        #insuranceBtn, #rerollBtn, #rewardRollBtn { width: 160px; height: 77px; display: none; }
+        #resetBtn { width: 160px; height: 105px; }
+        .tile-1 { --tile-image: url('T1.png'); background-image: var(--tile-image); }
+        .tile-2 { --tile-image: url('T2.png'); background-image: var(--tile-image); }
+        .tile-3 { --tile-image: url('T3.png'); background-image: var(--tile-image); }
+        .tile-4 { --tile-image: url('T4.png'); background-image: var(--tile-image); }
+        .tile-5 { --tile-image: url('T5.png'); background-image: var(--tile-image); }
+        .tile-6 { --tile-image: url('T6.png'); background-image: var(--tile-image); }
+        .tile-7 { --tile-image: url('T7.png'); background-image: var(--tile-image); }
+        .tile-8 { --tile-image: url('T8.png'); background-image: var(--tile-image); }
+        .tile-9 { --tile-image: url('T9.png'); background-image: var(--tile-image); }
+        #fireworks-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99999; }
+        .hidden { display: none !important; }
+        .show { display: inline-block !important; }
+        @media screen and (max-width: 768px) { .game-box { padding: 100px 20px 0px 20px; min-height: 500px; } .board-top { width: 90%; gap: 4px; top: 30px; } .tile-container { width: 45px; height: 120px; } .letter-overlay { font-size: 1.8rem; } .cube, .face { width: 45px; height: 45px; } .face-1 { transform: translateZ(22.5px) scale(1.01); } .face-2 { transform: rotateY(180deg) translateZ(22.5px) scale(1.01); } .face-3 { transform: rotateY(90deg) translateZ(22.5px) scale(1.01); } .face-4 { transform: rotateY(-90deg) translateZ(22.5px) scale(1.01); } .face-5 { transform: rotateX(90deg) translateZ(22.5px) scale(1.01); } .face-6 { transform: rotateX(-90deg) translateZ(22.5px) scale(1.01); } .felt-area { margin-top: 70px; padding: 15px 20px; flex-wrap: wrap; gap: 10px; } .status-panel { max-width: 100%; max-height: 80px; font-size: 0.85rem; } .dice-container { margin-left: 0; width: 100%; justify-content: center; gap: 20px; } .controls { bottom: 20px; gap: 10px; } #rollBtn { width: 140px; height: 65px; } #finishTurnBtn { width: 120px; height: 55px; } #insuranceBtn, #rerollBtn, #rewardRollBtn { width: 140px; height: 65px; } #resetBtn { width: 130px; height: 60px; } .jackpot-bar { font-size: 4rem; padding: 35px 0; } .modal-content { margin: 10% auto; padding: 20px; } .audio-ctrl-btn, .info-btn { width: 55px; height: 55px; top: 60px; } .lang-btn { width: 100px; height: 45px; top: 15px; left: 65px; } .info-btn { left: 45px; } }
+        @media screen and (max-width: 480px) { .game-box { padding: 80px 15px 0px 15px; min-height: 400px; } .board-top { width: 95%; gap: 3px; top: 25px; } .tile-container { width: 35px; height: 90px; } .letter-overlay { font-size: 1.3rem; margin-bottom: 5px; } .cube, .face { width: 35px; height: 35px; } .face-1 { transform: translateZ(17.5px) scale(1.01); } .face-2 { transform: rotateY(180deg) translateZ(17.5px) scale(1.01); } .face-3 { transform: rotateY(90deg) translateZ(17.5px) scale(1.01); } .face-4 { transform: rotateY(-90deg) translateZ(17.5px) scale(1.01); } .face-5 { transform: rotateX(90deg) translateZ(17.5px) scale(1.01); } .face-6 { transform: rotateX(-90deg) translateZ(17.5px) scale(1.01); } .audio-ctrl-btn, .info-btn { width: 48px; height: 48px; top: 50px; } .lang-btn { width: 85px; height: 38px; top: 10px; left: 55px; } .info-btn { left: 40px; } .felt-area { margin-top: 60px; padding: 10px 15px; } .status-panel { max-height: 60px; font-size: 0.75rem; padding-right: 5px; } .controls { bottom: 15px; gap: 5px; } #rollBtn { width: 110px; height: 50px; } #finishTurnBtn { width: 90px; height: 45px; } #insuranceBtn, #rerollBtn, #rewardRollBtn { width: 110px; height: 50px; } #resetBtn { width: 100px; height: 50px; } .jackpot-bar { font-size: 3rem; padding: 25px 0; letter-spacing: 3px; } }
+        @media screen and (orientation: portrait) and (max-width: 768px) { .felt-area { flex-direction: column; align-items: center; } .dice-container { margin-top: 10px; } .status-panel { max-width: 100%; text-align: center; } }
+        @media screen and (orientation: landscape) and (max-height: 500px) { .game-box { min-height: 300px; padding: 60px 20px 0px 20px; } .board-top { top: 20px; } .tile-container { width: 35px; height: 80px; } .letter-overlay { font-size: 1.2rem; } .cube, .face { width: 35px; height: 35px; } .face-1 { transform: translateZ(17.5px) scale(1.01); } .face-2 { transform: rotateY(180deg) translateZ(17.5px) scale(1.01); } .face-3 { transform: rotateY(90deg) translateZ(17.5px) scale(1.01); } .face-4 { transform: rotateY(-90deg) translateZ(17.5px) scale(1.01); } .face-5 { transform: rotateX(90deg) translateZ(17.5px) scale(1.01); } .face-6 { transform: rotateX(-90deg) translateZ(17.5px) scale(1.01); } .felt-area { margin-top: 50px; } .jackpot-bar { font-size: 3.5rem; padding: 20px 0; } .controls { bottom: 10px; gap: 5px; } #rollBtn { width: 100px; height: 45px; } #finishTurnBtn { width: 80px; height: 40px; } #insuranceBtn, #rerollBtn, #rewardRollBtn { width: 100px; height: 45px; } #resetBtn { width: 90px; height: 45px; } .audio-ctrl-btn, .info-btn { width: 40px; height: 40px; top: 40px; } .lang-btn { width: 75px; height: 34px; top: 10px; left: 45px; } .info-btn { left: 35px; } }
+    </style>
+</head>
+<body>
+<div class="bg-image"></div>
+<div id="fireworks-container"></div>
+
+<!-- BİLGİ MODALI (GÜNCELLENDİ) -->
+<div id="infoModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="toggleInfo()">&times;</span>
+        <h2>Oyun Kuralları ve İpuçları</h2>
+        <p><strong>Zar Toplamı ile Hamle:</strong> İki zarın toplamına eşit olan kutuları tek seferde kapatabilirsiniz.</p>
+        <p><strong>Bireysel Zar ile Hamle:</strong> Toplamı kullanmak yerine, zarları bağımsız değerlendirip her bir sayıya karşılık gelen kutuyu ayrı ayrı kapatabilirsiniz.</p>
+        <p><strong>Kısmi Hamle ve "Zarı Bitir":</strong> Bir zarı kullanarak kutu kapatıp, diğerini kullanmadan "Zarı Bitir" diyerek yeni zarlara geçebilirsiniz.</p>
+        <p><strong>Seçim İptali:</strong> Seçtiğiniz kutular beyaz bir çerçeve ile vurgulanır; hamlenizi onaylamadan önce aynı kutuya tekrar tıklayarak seçimi geri alabilir ve farklı bir kutu seçebilirsiniz.</p>
+        <p><strong>JACKPOT:</strong> Tüm kutuları kapatmayı başaran oyuncu "JACKPOT" yapar.</p>
+        <p><strong>Çok Oyunculu Mod:</strong> Tur sonunda en düşük ceza puanına sahip olan kazanır.</p>
+        <hr>
+        <h3>🎁 Ödüllü Reklam Mekanikleri</h3>
+        <p><strong>🛡️ Zar Sigortası:</strong> Her tur başlangıcında buton görünür. Reklam izleyerek sigorta satın alın. Bu turda hiç kutu kapatamazsanız ceza puanı almazsınız. Sigorta kullanılana kadar saklanır.</p>
+        <p><strong>🎲 Hediye Zar:</strong> Zarlar atıldıktan sonra, eğer hamle yapabiliyorsanız buton görünür. Reklam izleyerek ilk zarı yeniden atabilirsiniz. Yeni zar ile daha iyi bir hamle şansı yakalayın.</p>
+        <p><strong>🔄 Son Şans:</strong> Hiç geçerli hamle kalmadığında buton belirir. Reklam izleyerek zarları yeniden atar ve oyuna devam edersiniz. Kaybetmeyi erteleyin!</p>
+        <hr>
+        <h3 id="legal-title">Hukuki Bildirim</h3>
+        <p>Copyright (c) 2026 Tolga BAKIR. Tüm hakları saklıdır.</p>
+        <p>Bu oyunun mekanikleri, kod yapısı ve görsel tasarımı Tolga BAKIR tarafından oluşturulmuştur.</p>
+        <p>İzinsiz kopyalanması, dağıtılması, tersine mühendislik uygulanması veya ticari amaçla kullanılması yasaktır.</p>
+        <p>İlgili kodların, tasarımın veya mekaniklerin yazılı izin alınmaksızın kopyalanması, değiştirilmesi, dağıtılması veya ticari amaçla kullanılması 5846 sayılı Fikir ve Sanat Eserleri Kanunu uyarınca yasal sorumluluk doğurur.</p>
+        <p>Oyun, belirtilen stratejik kurallar çerçevesinde "olduğu gibi" sunulmuştur; kullanıcı hamle tercihlerinden ve oyun sürecinden bizzat sorumludur.</p>
+        <button class="modal-close-btn" onclick="toggleInfo()">Kapat</button>
+    </div>
+</div>
+
+<!-- BUTONLAR -->
+<button class="audio-ctrl-btn" id="audioToggleBtn" onclick="toggleAudio()">
+    <img id="audioIcon" src="ses-acik.png" alt="Ses Açık">
+</button>
+<button class="info-btn" onclick="toggleInfo()">
+    <img id="infoIcon" src="bilgi.png" alt="Bilgi">
+</button>
+<div class="lang-btn" id="langBtn">
+    <img src="dil.png" alt="Dil Seçimi" class="lang-bg-img">
+    <div class="lang-zone zone-tr" onclick="switchLanguage('tr')" title="Türkçe"></div>
+    <div class="lang-zone zone-en" onclick="switchLanguage('en')" title="English"></div>
+</div>
+
+<!-- OYUN ALANI -->
+<div class="game-box">
+    <div class="board-top" id="board"></div>
+    <div class="felt-area">
+        <div class="status-panel" id="statusMessage">
+            <div style="font-size:1.2rem; margin-bottom:4px; font-weight:bold; color:#ffecb3;">Kutu Kapat</div>
+            <span id="infoText">Zar atmak için butona basın!</span>
+            <div id="scoreText" style="margin-top:5px; font-size:0.9rem; color:#ffecb3; opacity:0.9;">Ceza Puanı: 45</div>
+        </div>
+        <div class="dice-container" id="diceGroup">
+            <div class="cube" id="cube1">
+                <div class="face face-1"></div><div class="face face-2"></div><div class="face face-3"></div>
+                <div class="face face-4"></div><div class="face face-5"></div><div class="face face-6"></div>
+            </div>
+            <div class="cube" id="cube2">
+                <div class="face face-1"></div><div class="face face-2"></div><div class="face face-3"></div>
+                <div class="face face-4"></div><div class="face face-5"></div><div class="face face-6"></div>
+            </div>
+        </div>
+    </div>
+    <div class="controls">
+        <button class="btn" id="rollBtn" onclick="rollDice()"><img src="zar-at.png" alt="Zar At"></button>
+        <button class="btn" id="finishTurnBtn" onclick="forceApplySelection()"><img src="zar-bitir.png" alt="Zarı Bitir"></button>
+        <button class="btn" id="insuranceBtn" onclick="handleInsurance()"><img src="zar-sigortasi.png" alt="Zar Sigortası"></button>
+        <button class="btn" id="rerollBtn" onclick="handleReroll()"><img src="hediye-zar.png" alt="Hediye Zar"></button>
+        <button class="btn hidden" id="rewardRollBtn" onclick="handleRewardRoll()"><img src="son-sans.png" alt="Son Şans"></button>
+        <button class="btn" id="resetBtn" onclick="resetGame()"><img src="yeniden-basla.png" alt="Yeniden Başla"></button>
+    </div>
+</div>
+
+<audio id="bilgisayarZarSesi" src="zar.mp3" preload="auto"></audio>
+<audio id="closeSound" src="kapak.mp3" preload="auto"></audio>
+<audio id="fireworkSound" src="havai.mp3" preload="auto"></audio>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+<script>
+(function() {
+    // ---- AdMob Başlatma (Test ID) ----
+    document.addEventListener('deviceready', function() {
+        if (typeof admob !== 'undefined') {
+            admob.banner.config({ id: 'ca-app-pub-3940256099942544/6300978111', isTesting: true, autoShow: true });
+            admob.banner.prepare();
+            admob.interstitial.config({ id: 'ca-app-pub-3940256099942544/1033173712', isTesting: true, autoShow: false });
+            admob.interstitial.prepare();
+            admob.rewarded.config({ id: 'ca-app-pub-3940256099942544/5224354917', isTesting: true, autoShow: false });
+            admob.rewarded.prepare();
+        }
+    }, false);
+
+    // ---- AdManager ----
+    const AdManager = {
+        gameCounter: 0,
+        showRewarded(callback) {
+            if (typeof admob !== 'undefined' && admob.rewarded) {
+                admob.rewarded.show();
+                admob.rewarded.on('reward', function() { callback(); });
+                admob.rewarded.on('dismiss', function() { admob.rewarded.prepare(); });
+            } else {
+                console.log('Simülasyon: Ödüllü reklam izlendi.');
+                setTimeout(callback, 1000);
+            }
+        },
+        checkAndShowInterstitial() {
+            this.gameCounter++;
+            if (this.gameCounter >= 5) {
+                if (typeof admob !== 'undefined' && admob.interstitial) {
+                    admob.interstitial.show();
+                    admob.interstitial.on('dismiss', function() { admob.interstitial.prepare(); });
+                }
+                this.gameCounter = 0;
+            }
+        }
+    };
+
+    // ---- Oyun Değişkenleri ----
+    let currentLang = 'tr';
+    let val1 = 5, val2 = 3, diceTotal = 8;
+    let rolled = false;
+    let selectedTiles = [];
+    let isMuted = false;
+    let currentDiceMode = 2;
+    const tilesState = Array(10).fill(false);
+    let confettiInterval = null;
+
+    let isInsured = false;
+    let canReroll = false;
+
+    const rollBtn = document.getElementById('rollBtn');
+    const finishTurnBtn = document.getElementById('finishTurnBtn');
+    const insuranceBtn = document.getElementById('insuranceBtn');
+    const rerollBtn = document.getElementById('rerollBtn');
+    const rewardRollBtn = document.getElementById('rewardRollBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const cube1 = document.getElementById('cube1');
+    const cube2 = document.getElementById('cube2');
+    const board = document.getElementById('board');
+    const scoreText = document.getElementById('scoreText');
+    const bilgisayarZarSesi = document.getElementById('bilgisayarZarSesi');
+    const fireworkSound = document.getElementById('fireworkSound');
+
+    const cubeRotations = { 1: { x: 0, y: 0 }, 2: { x: 0, y: 180 }, 3: { x: 0, y: -90 }, 4: { x: 0, y: 90 }, 5: { x: -90, y: 0 }, 6: { x: 90, y: 0 } };
+
+    // ---- Dil ve Yardımcılar ----
+    const translations = {
+        tr: { 
+            gameTitle: "Kutu Kapat", 
+            rollInfo: "Zar atmak için butona basın!", 
+            rolling: "Zarlar yuvarlanıyor...", 
+            diceSingle: (val) => `Zar: ${val}. Seçim yapın.`, 
+            diceDouble: (v1, v2, total) => `Zarlar: ${v1} ve ${v2} (Toplam: ${total}). Seçim yapın.`, 
+            noMoves: "<span style='color:#ff8a80;'>Hamle kalmadı! Son Şans butonuna basarak reklam izleyip yeniden zar atabilirsiniz.</span>", 
+            tileClosed: "Kutular kapandı! Zar atmak için butona basın.", 
+            gameOverJackpot: "<span style='color:#ff8a80; animation: blink 1s infinite;'>OYUN BİTTİ! JACKPOT!</span>", 
+            partialSelect: (num) => `Zarlardan birini (${num}) seçtiniz. "Zarı Bitir" diyebilir veya kombine edebilirsiniz.`, 
+            scoreLabel: "Mevcut Ceza Puanınız:", 
+            modalTitle: "Oyun Kuralları ve İpuçları",
+            modalRules: [
+                "<strong>Zar Toplamı ile Hamle:</strong> İki zarın toplamına eşit olan kutuları tek seferde kapatabilirsiniz.",
+                "<strong>Bireysel Zar ile Hamle:</strong> Toplamı kullanmak yerine, zarları bağımsız değerlendirip her bir sayıya karşılık gelen kutuyu ayrı ayrı kapatabilirsiniz.",
+                "<strong>Kısmi Hamle ve 'Zarı Bitir':</strong> Bir zarı kullanarak kutu kapatıp, diğerini kullanmadan 'Zarı Bitir' diyerek yeni zarlara geçebilirsiniz.",
+                "<strong>Seçim İptali:</strong> Seçtiğiniz kutular beyaz bir çerçeve ile vurgulanır; hamlenizi onaylamadan önce aynı kutuya tekrar tıklayarak seçimi geri alabilir ve farklı bir kutu seçebilirsiniz.",
+                "<strong>JACKPOT:</strong> Tüm kutuları kapatmayı başaran oyuncu 'JACKPOT' yapar.",
+                "<strong>Çok Oyunculu Mod:</strong> Tur sonunda en düşük ceza puanına sahip olan kazanır."
+            ],
+            modalRewards: [
+                "<strong>🛡️ Zar Sigortası:</strong> Her tur başlangıcında buton görünür. Reklam izleyerek sigorta satın alın. Bu turda hiç kutu kapatamazsanız ceza puanı almazsınız. Sigorta kullanılana kadar saklanır.",
+                "<strong>🎲 Hediye Zar:</strong> Zarlar atıldıktan sonra, eğer hamle yapabiliyorsanız buton görünür. Reklam izleyerek ilk zarı yeniden atabilirsiniz. Yeni zar ile daha iyi bir hamle şansı yakalayın.",
+                "<strong>🔄 Son Şans:</strong> Hiç geçerli hamle kalmadığında buton belirir. Reklam izleyerek zarları yeniden atar ve oyuna devam edersiniz. Kaybetmeyi erteleyin!"
+            ],
+            modalLegal: [
+                "Copyright (c) 2026 Tolga BAKIR. Tüm hakları saklıdır.",
+                "Bu oyunun mekanikleri, kod yapısı ve görsel tasarımı Tolga BAKIR tarafından oluşturulmuştur.",
+                "İzinsiz kopyalanması, dağıtılması, tersine mühendislik uygulanması veya ticari amaçla kullanılması yasaktır.",
+                "İlgili kodların, tasarımın veya mekaniklerin yazılı izin alınmaksızın kopyalanması, değiştirilmesi, dağıtılması veya ticari amaçla kullanılması 5846 sayılı Fikir ve Sanat Eserleri Kanunu uyarınca yasal sorumluluk doğurur.",
+                "Oyun, belirtilen stratejik kurallar çerçevesinde 'olduğu gibi' sunulmuştur; kullanıcı hamle tercihlerinden ve oyun sürecinden bizzat sorumludur."
+            ],
+            modalClose: "Kapat", 
+            audioOn: "Ses Açık", 
+            audioOff: "Ses Kapalı", 
+            infoAlt: "Bilgi", 
+            rollAlt: "Zar At", 
+            finishAlt: "Zarı Bitir", 
+            resetAlt: "Yeniden Başla", 
+            statusTitle: "Kutu Kapat", 
+            rollImg: "zar-at.png", 
+            finishImg: "zar-bitir.png", 
+            resetImg: "yeniden-basla.png", 
+            modalLegalTitle: "Hukuki Bildirim",
+            // Buton görselleri (TR)
+            insuranceImg: "zar-sigortasi.png",
+            rerollImg: "hediye-zar.png",
+            rewardImg: "son-sans.png"
+        },
+        en: { 
+            gameTitle: "Box Close", 
+            rollInfo: "Press the button to roll dice!", 
+            rolling: "Rolling dice...", 
+            diceSingle: (val) => `Die: ${val}. Make your selection.`, 
+            diceDouble: (v1, v2, total) => `Dice: ${v1} and ${v2} (Total: ${total}). Make your selection.`, 
+            noMoves: "<span style='color:#ff8a80;'>No moves left! Press 'Last Chance' button to watch ad and roll again.</span>", 
+            tileClosed: "Tiles closed! Press the button to roll dice.", 
+            gameOverJackpot: "<span style='color:#ff8a80; animation: blink 1s infinite;'>GAME OVER! JACKPOT!</span>", 
+            partialSelect: (num) => `You selected one die (${num}). You can 'Finish Die' or combine.`, 
+            scoreLabel: "Current Penalty Score:", 
+            modalTitle: "Game Rules and Tips",
+            modalRules: [
+                "<strong>Move with Dice Total:</strong> You can close boxes equal to the total of two dice in one go.",
+                "<strong>Move with Individual Dice:</strong> Instead of total, you can evaluate dice independently and close each corresponding box separately.",
+                "<strong>Partial Move and 'Finish Die':</strong> You can close a box using one die and then say 'Finish Die' to move to new dice without using the other.",
+                "<strong>Selection Cancellation:</strong> Selected boxes are highlighted with a white frame; you can cancel the selection by clicking the same box again before confirming your move, and choose a different box.",
+                "<strong>JACKPOT:</strong> The player who manages to close all boxes makes a 'JACKPOT'.",
+                "<strong>Multiplayer Mode:</strong> The player with the lowest penalty score at the end of the round wins."
+            ],
+            modalRewards: [
+                "<strong>🛡️ Dice Insurance:</strong> Button appears at the start of each round. Watch an ad to buy insurance. If you can't close any box this round, you won't take penalty points. Insurance stays until used.",
+                "<strong>🎲 Gift Die:</strong> After dice are rolled, if you can make a move, the button appears. Watch an ad to reroll the first die. Get a better chance with the new die.",
+                "<strong>🔄 Last Chance:</strong> When no valid moves remain, the button appears. Watch an ad to reroll the dice and continue the game. Postpone your loss!"
+            ],
+            modalLegal: [
+                "Copyright (c) 2026 Tolga BAKIR. All rights reserved.",
+                "The mechanics, code structure and visual design of this game were created by Tolga BAKIR.",
+                "Unauthorized copying, distribution, reverse engineering or commercial use is prohibited.",
+                "Copying, modifying, distributing or using the relevant codes, design or mechanics for commercial purposes without written permission shall incur legal liability under Law No. 5846 on Intellectual and Artistic Works.",
+                "The game is provided 'as is' within the specified strategic rules; the user is solely responsible for their moves and the game process."
+            ],
+            modalClose: "Close", 
+            audioOn: "Sound On", 
+            audioOff: "Sound Off", 
+            infoAlt: "Info", 
+            rollAlt: "Roll Dice", 
+            finishAlt: "Finish Die", 
+            resetAlt: "Restart", 
+            statusTitle: "Box Close", 
+            rollImg: "roll-dice.png", 
+            finishImg: "finish-die.png", 
+            resetImg: "restart.png", 
+            modalLegalTitle: "Legal Notice",
+            // Buton görselleri (EN)
+            insuranceImg: "dice-insurance.png",
+            rerollImg: "gift-dice.png",
+            rewardImg: "last-chance.png"
+        }
+    };
+
+    function getTranslation(key, ...args) {
+        const dict = translations[currentLang];
+        const value = dict[key];
+        return typeof value === 'function' ? value(...args) : value;
+    }
+    function setInfoMessage(key, ...args) {
+        document.getElementById('infoText').innerHTML = getTranslation(key, ...args);
+    }
+    function updateAudioButtonText() {
+        const img = document.getElementById('audioIcon');
+        img.src = isMuted ? 'ses-kapali.png' : 'ses-acik.png';
+        img.alt = isMuted ? getTranslation('audioOff') : getTranslation('audioOn');
+    }
+    function toggleAudio() {
+        isMuted = !isMuted;
+        if (bilgisayarZarSesi) bilgisayarZarSesi.muted = isMuted;
+        if (fireworkSound) fireworkSound.muted = isMuted;
+        updateAudioButtonText();
+    }
+    function updateScore() {
+        let score = 0;
+        for (let i = 1; i <= 9; i++) if (!tilesState[i]) score += i;
+        scoreText.innerText = `${getTranslation('scoreLabel')} ${score}`;
+    }
+    function isGameOver() {
+        for (let i = 1; i <= 9; i++) if (!tilesState[i]) return false;
+        return true;
+    }
+    function canFindSum(arr, target) {
+        if (target === 0) return true;
+        if (target < 0 || arr.length === 0) return false;
+        return canFindSum(arr.slice(1), target - arr[0]) || canFindSum(arr.slice(1), target);
+    }
+    function hasValidMovesEsnek() {
+        const active = [];
+        for (let i = 1; i <= 9; i++) if (!tilesState[i]) active.push(i);
+        return canFindSum(active, diceTotal) || (currentDiceMode === 2 && (!tilesState[val1] || !tilesState[val2]));
+    }
+    function clearSelections() {
+        for (let i = 1; i <= 9; i++) {
+            const tile = document.getElementById(`tile-${i}`);
+            if (!tilesState[i]) tile.classList.remove('selected');
+        }
+        selectedTiles = [];
+    }
+    function endGame() {
+        rollBtn.disabled = true;
+        finishTurnBtn.style.display = 'none';
+        rewardRollBtn.classList.add('hidden');
+        rerollBtn.classList.remove('show');
+        insuranceBtn.classList.remove('show');
+    }
+
+    // ---- Tahta ve Zar Görselleri ----
+    function createBoard() {
+        const letters = [".", "J", "A", "C", "K", "P", "O", "T", "."];
+        board.innerHTML = '';
+        for (let i = 1; i <= 9; i++) {
+            const container = document.createElement('div');
+            container.classList.add('tile-container');
+            container.id = `slot-${i}`;
+            const letterDiv = document.createElement('div');
+            letterDiv.classList.add('letter-overlay');
+            letterDiv.innerText = letters[i-1];
+            container.appendChild(letterDiv);
+            const tile = document.createElement('div');
+            tile.classList.add('tile', 'tile-' + i);
+            tile.innerText = i;
+            tile.id = `tile-${i}`;
+            if (tilesState[i]) tile.classList.add('shut');
+            tile.onclick = () => selectTile(i);
+            container.appendChild(tile);
+            board.appendChild(container);
+        }
+        updateScore();
+    }
+
+    function setDiceFaces(v1, v2) {
+        cube1.style.transition = 'transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)';
+        cube2.style.transition = 'transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)';
+        const extra = (Math.floor(Math.random() * 3) + 2) * 360;
+        cube1.style.transform = `rotateX(${extra + cubeRotations[v1].x}deg) rotateY(${extra + cubeRotations[v1].y}deg)`;
+        if (currentDiceMode === 2) {
+            cube2.style.transform = `rotateX(${extra + cubeRotations[v2].x}deg) rotateY(${extra + cubeRotations[v2].y}deg)`;
+        }
+    }
+
+    // ---- Ödüllü Reklam Mekanikleri ----
+    function handleInsurance() {
+        if (rolled) return;
+        AdManager.showRewarded(() => {
+            isInsured = true;
+            insuranceBtn.classList.remove('show');
+            setInfoMessage('Sigorta aktif! Bu tur ceza yemezsin.');
+            rollBtn.disabled = false;
+        });
+    }
+
+    function handleReroll() {
+        if (!rolled || !canReroll) return;
+        AdManager.showRewarded(() => {
+            val1 = Math.floor(Math.random() * 6) + 1;
+            diceTotal = val1 + val2;
+            setDiceFaces(val1, val2);
+            canReroll = false;
+            rerollBtn.classList.remove('show');
+            setInfoMessage('Zar yenilendi! Yeni zar: ' + val1);
+            clearSelections();
+            if (!hasValidMovesEsnek()) {
+                if (!isGameOver()) {
+                    rewardRollBtn.classList.remove('hidden');
+                    setInfoMessage('noMoves');
+                } else {
+                    setInfoMessage('gameOverJackpot');
+                    triggerGameOverEffect();
+                    endGame();
+                }
+            }
+        });
+    }
+
+    function handleRewardRoll() {
+        if (!rolled) return;
+        rewardRollBtn.classList.add('hidden');
+        AdManager.showRewarded(() => {
+            rolled = false;
+            rollDice();
+        });
+    }
+
+    // ---- ZAR AT ----
+    function rollDice() {
+        if (rolled) return;
+        insuranceBtn.classList.remove('show');
+        rerollBtn.classList.remove('show');
+
+        if (bilgisayarZarSesi && !isMuted) {
+            bilgisayarZarSesi.currentTime = 0;
+            bilgisayarZarSesi.play().catch(e => console.log(e));
+        }
+        rollBtn.disabled = true;
+        finishTurnBtn.style.display = 'none';
+        rewardRollBtn.classList.add('hidden');
+        setInfoMessage('rolling');
+
+        val1 = Math.floor(Math.random() * 6) + 1;
+        val2 = (currentDiceMode === 2) ? Math.floor(Math.random() * 6) + 1 : 0;
+        diceTotal = val1 + val2;
+        setDiceFaces(val1, val2);
+
+        setTimeout(() => {
+            rolled = true;
+            if (currentDiceMode === 1) setInfoMessage('diceSingle', val1);
+            else setInfoMessage('diceDouble', val1, val2, diceTotal);
+            clearSelections();
+
+            if (hasValidMovesEsnek() && !isGameOver()) {
+                canReroll = true;
+                rerollBtn.classList.add('show');
+            }
+
+            if (!hasValidMovesEsnek()) {
+                if (!isGameOver()) {
+                    if (isInsured) {
+                        setInfoMessage('Sigorta sayesinde ceza yemiyorsun!');
+                        isInsured = false;
+                        rollBtn.disabled = false;
+                        setInfoMessage('Sigorta kullanıldı, ceza yok. Yeni tura başlamak için "Yeniden Başla"ya bas.');
+                        return;
+                    }
+                    rewardRollBtn.classList.remove('hidden');
+                    setInfoMessage('noMoves');
+                    rollBtn.disabled = true;
+                    finishTurnBtn.style.display = 'none';
+                } else {
+                    setInfoMessage('gameOverJackpot');
+                    triggerGameOverEffect();
+                    endGame();
+                }
+            } else {
+                rollBtn.disabled = false;
+            }
+        }, 600);
+    }
+
+    // ---- SEÇİM ve UYGULAMA ----
+    function selectTile(num) {
+        if (!rolled || tilesState[num]) return;
+        const tile = document.getElementById(`tile-${num}`);
+        if (tile.classList.contains('selected')) {
+            tile.classList.remove('selected');
+            selectedTiles = selectedTiles.filter(x => x !== num);
+        } else {
+            tile.classList.add('selected');
+            selectedTiles.push(num);
+        }
+        const selectedTotal = selectedTiles.reduce((a, b) => a + b, 0);
+        const autoValid = (selectedTotal === diceTotal) || 
+            (currentDiceMode === 2 && selectedTiles.length === 2 && 
+            ((selectedTiles[0] === val1 && selectedTiles[1] === val2) || 
+             (selectedTiles[0] === val2 && selectedTiles[1] === val1)));
+        const partialValid = (currentDiceMode === 2 && selectedTiles.length === 1 && 
+            (selectedTiles[0] === val1 || selectedTiles[0] === val2));
+
+        if (autoValid) applySelection();
+        else if (partialValid) {
+            finishTurnBtn.style.display = 'inline-block';
+            setInfoMessage('partialSelect', selectedTiles[0]);
+        } else {
+            finishTurnBtn.style.display = 'none';
+        }
+    }
+
+    function applySelection() {
+        const closeSound = document.getElementById('closeSound');
+        selectedTiles.forEach(n => {
+            const tile = document.getElementById(`tile-${n}`);
+            tile.classList.remove('selected');
+            tile.classList.add('shut');
+            tilesState[n] = true;
+            if (!isMuted && closeSound) {
+                closeSound.currentTime = 0;
+                closeSound.play().catch(e => console.log(e));
+            }
+        });
+        rolled = false;
+        rollBtn.disabled = false;
+        finishTurnBtn.style.display = 'none';
+        rewardRollBtn.classList.add('hidden');
+        rerollBtn.classList.remove('show');
+        updateScore();
+        setInfoMessage('tileClosed');
+        if (isGameOver()) {
+            setInfoMessage('gameOverJackpot');
+            triggerGameOverEffect();
+            endGame();
+        }
+    }
+
+    function forceApplySelection() {
+        if (currentDiceMode === 2 && selectedTiles.length === 1 && 
+            (selectedTiles[0] === val1 || selectedTiles[0] === val2)) {
+            applySelection();
+        }
+    }
+
+    function triggerGameOverEffect() {
+        if (!isMuted && fireworkSound) {
+            fireworkSound.currentTime = 0;
+            fireworkSound.play().catch(e => console.log(e));
+        }
+        document.querySelectorAll('.letter-overlay, .tile').forEach(el => el.classList.add('animate-jackpot'));
+        if (confettiInterval) clearInterval(confettiInterval);
+        let duration = 6000;
+        let animationEnd = Date.now() + duration;
+        confettiInterval = setInterval(function() {
+            if (Date.now() > animationEnd) {
+                clearInterval(confettiInterval);
+                confettiInterval = null;
+                return;
+            }
+            confetti({ startVelocity: 30, spread: 360, ticks: 60, origin: { x: Math.random(), y: Math.random() - 0.2 } });
+        }, 200);
+    }
+
+    // ---- RESET ----
+    function resetGame() {
+        AdManager.checkAndShowInterstitial();
+        isInsured = false;
+        canReroll = false;
+        insuranceBtn.classList.remove('show');
+        rerollBtn.classList.remove('show');
+        rewardRollBtn.classList.add('hidden');
+
+        if (confettiInterval) {
+            clearInterval(confettiInterval);
+            confettiInterval = null;
+        }
+        rolled = false;
+        selectedTiles = [];
+        tilesState.fill(false);
+        document.querySelectorAll('.animate-jackpot').forEach(el => el.classList.remove('animate-jackpot'));
+        rollBtn.disabled = false;
+        finishTurnBtn.style.display = 'none';
+        setInfoMessage('rollInfo');
+        cube1.style.transition = 'transform 0.3s ease';
+        cube2.style.transition = 'transform 0.3s ease';
+        cube1.style.transform = 'rotateX(0deg) rotateY(0deg)';
+        cube2.style.transform = 'rotateX(0deg) rotateY(0deg)';
+        createBoard();
+        updateScore();
+        updateUITexts();
+
+        insuranceBtn.classList.add('show');
+    }
+
+    // ---- DİL ve ARAYÜZ (GÜNCELLENDİ: Buton görselleri dil ile değişir) ----
+    function updateUITexts() {
+        // Başlık ve durum mesajları
+        document.querySelector('.status-panel > div:first-child').textContent = getTranslation('statusTitle');
+        if (!rolled) setInfoMessage('rollInfo');
+        else if (currentDiceMode === 1) setInfoMessage('diceSingle', val1);
+        else setInfoMessage('diceDouble', val1, val2, diceTotal);
+        updateScore();
+
+        // Ana buton görselleri (değişmeyenler)
+        document.querySelector('#rollBtn img').src = getTranslation('rollImg');
+        document.querySelector('#rollBtn img').alt = getTranslation('rollAlt');
+        document.querySelector('#finishTurnBtn img').src = getTranslation('finishImg');
+        document.querySelector('#finishTurnBtn img').alt = getTranslation('finishAlt');
+        document.querySelector('#resetBtn img').src = getTranslation('resetImg');
+        document.querySelector('#resetBtn img').alt = getTranslation('resetAlt');
+
+        // Ödüllü buton görselleri (dil ile değişir)
+        document.querySelector('#insuranceBtn img').src = getTranslation('insuranceImg');
+        document.querySelector('#insuranceBtn img').alt = getTranslation('insuranceImg') === 'zar-sigortasi.png' ? 'Zar Sigortası' : 'Dice Insurance';
+        document.querySelector('#rerollBtn img').src = getTranslation('rerollImg');
+        document.querySelector('#rerollBtn img').alt = getTranslation('rerollImg') === 'hediye-zar.png' ? 'Hediye Zar' : 'Gift Die';
+        document.querySelector('#rewardRollBtn img').src = getTranslation('rewardImg');
+        document.querySelector('#rewardRollBtn img').alt = getTranslation('rewardImg') === 'son-sans.png' ? 'Son Şans' : 'Last Chance';
+
+        updateAudioButtonText();
+        document.querySelector('.info-btn img').alt = getTranslation('infoAlt');
+
+        // MODAL içeriğini güncelle (kurallar ve ödüllü mekanikler)
+        const modalContent = document.querySelector('.modal-content');
+        modalContent.querySelector('h2').textContent = getTranslation('modalTitle');
+        
+        const paragraphs = modalContent.querySelectorAll('p');
+        const rules = getTranslation('modalRules');
+        const rewards = getTranslation('modalRewards');
+        const legal = getTranslation('modalLegal');
+        
+        // İlk 6 paragraf kurallar
+        for (let i = 0; i < rules.length && i < paragraphs.length; i++) {
+            paragraphs[i].innerHTML = rules[i];
+        }
+        // 7. paragraf (ödüllü mekanikler başlığı) - elle ekleme yapacağız
+        // Modal içinde <h3> ile ayırdık, o yüzden onu da güncelle
+        const h3s = modalContent.querySelectorAll('h3');
+        if (h3s.length >= 1) {
+            h3s[0].textContent = currentLang === 'tr' ? '🎁 Ödüllü Reklam Mekanikleri' : '🎁 Rewarded Ad Mechanics';
+        }
+        // Ödüllü açıklamaları 3 ayrı paragraf olarak ekle
+        const rewardParagraphs = modalContent.querySelectorAll('p');
+        // rules'den sonra gelen 3 paragrafı bul (index rules.length)
+        for (let i = 0; i < rewards.length; i++) {
+            const idx = rules.length + i;
+            if (idx < rewardParagraphs.length) {
+                rewardParagraphs[idx].innerHTML = rewards[i];
+            }
+        }
+
+        // Hukuki bildirim başlığı ve metinler
+        document.getElementById('legal-title').textContent = getTranslation('modalLegalTitle');
+        // legal metinler için: hr'den sonraki paragrafları bul
+        const hr = modalContent.querySelector('hr');
+        let legalStartIndex = -1;
+        for (let i = 0; i < rewardParagraphs.length; i++) {
+            if (rewardParagraphs[i].previousElementSibling === hr || 
+                (rewardParagraphs[i].previousElementSibling && rewardParagraphs[i].previousElementSibling.previousElementSibling === hr)) {
+                legalStartIndex = i;
+                break;
+            }
+        }
+        if (legalStartIndex !== -1) {
+            for (let i = 0; i < legal.length && (legalStartIndex + i) < rewardParagraphs.length; i++) {
+                rewardParagraphs[legalStartIndex + i].innerHTML = legal[i];
+            }
+        }
+
+        modalContent.querySelector('.modal-close-btn').textContent = getTranslation('modalClose');
+    }
+
+    function switchLanguage(lang) {
+        if (lang === 'tr' || lang === 'en') currentLang = lang;
+        else currentLang = (currentLang === 'tr') ? 'en' : 'tr';
+        updateUITexts();
+    }
+
+    function toggleInfo() {
+        const modal = document.getElementById('infoModal');
+        if (modal.style.display === "flex") modal.style.display = "none";
+        else { updateUITexts(); modal.style.display = "flex"; }
+    }
+    window.onclick = function(event) {
+        const modal = document.getElementById('infoModal');
+        if (event.target === modal) modal.style.display = "none";
+    }
+
+    // ---- BAŞLAT ----
+    createBoard();
+    updateUITexts();
+    insuranceBtn.classList.add('show');
+    setTimeout(() => {
+        cube1.style.transition = 'transform 0.3s ease';
+        cube2.style.transition = 'transform 0.3s ease';
+        cube1.style.transform = `rotateX(${cubeRotations[val1].x}deg) rotateY(${cubeRotations[val1].y}deg)`;
+        cube2.style.transform = `rotateX(${cubeRotations[val2].x}deg) rotateY(${cubeRotations[val2].y}deg)`;
+    }, 100);
+
+    // Global fonksiyonlar
+    window.rollDice = rollDice;
+    window.selectTile = selectTile;
+    window.forceApplySelection = forceApplySelection;
+    window.handleRewardRoll = handleRewardRoll;
+    window.handleInsurance = handleInsurance;
+    window.handleReroll = handleReroll;
+    window.resetGame = resetGame;
+    window.switchLanguage = switchLanguage;
+    window.toggleAudio = toggleAudio;
+    window.toggleInfo = toggleInfo;
+    window.AdManager = AdManager;
+
+    console.log('Kutu Kapat (3 ödüllü reklam + dil desteği) yüklendi!');
+})();
+</script>
+</body>
+</html>
