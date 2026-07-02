@@ -36,3 +36,4 @@ jobs:
         with:
           name: kutu-kapat-apk
           path: platforms/android/app/build/outputs/apk/release/app-release.apk
+# tetikle
